@@ -240,6 +240,30 @@ public class Main {
         for (Student s : list) System.out.println(s);
     }
 
+    private static Student linearSearch(List<Student> list, String matric) {
+        for (Student s : list) {
+            if (s.matric.equals(matric)) return s;
+        }
+        return null;
+    }
+
+    private static boolean linearDelete(List<Student> list, String matric) {
+        Iterator<Student> it = list.iterator();
+        while (it.hasNext()) {
+            if (it.next().matric.equals(matric)) {
+                it.remove();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<Student> linearInorder(List<Student> list) {
+        List<Student> copy = new ArrayList<>(list);
+        copy.sort(Comparator.comparing(s -> s.matric));
+        return copy;
+    }
+
     private static void searchAndPrint(BST bst, String matric) {
         System.out.println("\nSearch Matric Number: " + matric);
         Student res = bst.search(matric);
@@ -294,6 +318,7 @@ public class Main {
     private static void performanceTest(int nInsert, int nSearch, int nDelete) {
         BST perf = new BST();
         Random rnd = new Random(12345);
+        List<Student> linearList = new ArrayList<>(nInsert);
 
         // Generate unique IDs
         String[] keys = new String[nInsert];
@@ -301,10 +326,21 @@ public class Main {
             keys[i] = "AIU" + String.format("%05d", i + 1); // AIU00001 ...
         }
 
-        long t1 = System.nanoTime();
+        Student[] students = new Student[nInsert];
         for (int i = 0; i < nInsert; i++) {
             double cgpa = 2.00 + rnd.nextDouble() * 2.00; // 2.00 - 4.00
-            perf.insert("Student" + i, keys[i], cgpa);
+            students[i] = new Student("Student" + i, keys[i], cgpa);
+        }
+
+        List<Student> insertOrder = new ArrayList<>(Arrays.asList(students));
+        // Optional: shuffle insertion order to avoid worst-case BST
+        // Uncomment the line below if you want shuffled insertion
+
+        // Collections.shuffle(insertOrder, new Random(12345));
+
+        long t1 = System.nanoTime();
+        for (Student s : insertOrder) {
+            perf.insert(s.name, s.matric, s.cgpa);
         }
 
         // perf.insert("zuri", "AIU01001", 4.0); // Insert lecturer for performance test
@@ -318,28 +354,78 @@ public class Main {
         // Delete lecturer after test
         long t2 = System.nanoTime();
 
+        int[] searchIdx = new int[nSearch];
+        for (int i = 0; i < nSearch; i++) {
+            searchIdx[i] = rnd.nextInt(nInsert);
+        }
+
+        long t2b = System.nanoTime();
+        for (Student s : insertOrder) {
+            linearList.add(s);
+        }
+        long t2c = System.nanoTime();
+
         long t3 = System.nanoTime();
         for (int i = 0; i < nSearch; i++) {
-            String k = keys[rnd.nextInt(nInsert)];
+            String k = keys[searchIdx[i]];
             perf.search(k);
         }
         long t4 = System.nanoTime();
 
+        long t3b = System.nanoTime();
+        for (int i = 0; i < nSearch; i++) {
+            String k = keys[searchIdx[i]];
+            linearSearch(linearList, k);
+        }
+        long t4b = System.nanoTime();
+
+        int[] deleteIdx = new int[nDelete];
+        for (int i = 0; i < nDelete; i++) {
+            deleteIdx[i] = rnd.nextInt(nInsert);
+        }
+
         long t5 = System.nanoTime();
         for (int i = 0; i < nDelete; i++) {
-            String k = keys[rnd.nextInt(nInsert)];
+            String k = keys[deleteIdx[i]];
             perf.delete(k);
         }
         long t6 = System.nanoTime();
+
+        long t5b = System.nanoTime();
+        for (int i = 0; i < nDelete; i++) {
+            String k = keys[deleteIdx[i]];
+            linearDelete(linearList, k);
+        }
+        long t6b = System.nanoTime();
 
         long t7 = System.nanoTime();
         perf.inOrderList();
         long t8 = System.nanoTime();
 
-        System.out.println("Insert " + nInsert + " nodes: " + ((t2 - t1) / 1_000_000.0) + " ms");
-        System.out.println("Search " + nSearch + " keys: " + ((t4 - t3) / 1_000_000.0) + " ms");
-        System.out.println("Delete " + nDelete + " keys: " + ((t6 - t5) / 1_000_000.0) + " ms");
-        System.out.println("Inorder traversal: " + ((t8 - t7) / 1_000_000.0) + " ms");
+        long t7b = System.nanoTime();
+        linearInorder(linearList);
+        long t8b = System.nanoTime();
+
+        double insertMs = (t2 - t1) / 1_000_000.0;
+        double linearInsertMs = (t2c - t2b) / 1_000_000.0;
+        double bstSearchMs = (t4 - t3) / 1_000_000.0;
+        double linearSearchMs = (t4b - t3b) / 1_000_000.0;
+        double deleteMs = (t6 - t5) / 1_000_000.0;
+        double linearDeleteMs = (t6b - t5b) / 1_000_000.0;
+        double inorderMs = (t8 - t7) / 1_000_000.0;
+        double linearInorderMs = (t8b - t7b) / 1_000_000.0;
+
+        System.out.println("Insert " + nInsert + " nodes: " + insertMs + " ms");
+        System.out.println("Search " + nSearch + " keys (BST): " + bstSearchMs + " ms");
+        System.out.println("Search " + nSearch + " keys (Linear): " + linearSearchMs + " ms");
+        System.out.println("Delete " + nDelete + " keys: " + deleteMs + " ms");
+        System.out.println("Inorder traversal: " + inorderMs + " ms");
+        System.out.println("\n--- Comparison Table (BST vs Linear Search) ---");
+        System.out.printf("%-28s %-15s %-15s%n", "Operation", "BST (ms)", "Linear (ms)");
+        System.out.printf("%-28s %-15.4f %-15.4f%n", "Insert " + nInsert + " nodes", insertMs, linearInsertMs);
+        System.out.printf("%-28s %-15.4f %-15.4f%n", "Search " + nSearch + " keys", bstSearchMs, linearSearchMs);
+        System.out.printf("%-28s %-15.4f %-15.4f%n", "Delete " + nDelete + " keys", deleteMs, linearDeleteMs);
+        System.out.printf("%-28s %-15.4f %-15.4f%n", "Inorder traversal", inorderMs, linearInorderMs);
         System.out.println("Final nodes count: " + perf.countNodes());
         System.out.println("Final height: " + perf.height());
     }

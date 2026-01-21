@@ -335,23 +335,14 @@ public class Main {
         List<Student> insertOrder = new ArrayList<>(Arrays.asList(students));
         // Optional: shuffle insertion order to avoid worst-case BST
         // Uncomment the line below if you want shuffled insertion
-
-        // Collections.shuffle(insertOrder, new Random(12345));
+        Collections.shuffle(insertOrder, new Random(12345));
 
         long t1 = System.nanoTime();
         for (Student s : insertOrder) {
             perf.insert(s.name, s.matric, s.cgpa);
         }
 
-        // perf.insert("zuri", "AIU01001", 4.0); // Insert lecturer for performance test
-        // System.out.println("\n=== In-order Traversal of Large Dataset ===");
-        //     for (Student s : perf.inOrderList()) {
-        //         System.out.println(s);
-        // perf.delete("AIU01001"); 
-        // perf.countNodes();
             // }
-        System.out.println("\n BST Size: " + perf.countNodes());
-        // Delete lecturer after test
         long t2 = System.nanoTime();
 
         int[] searchIdx = new int[nSearch];
